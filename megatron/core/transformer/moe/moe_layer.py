@@ -138,11 +138,13 @@ class MoELayer(BaseMoELayer):
 
             # capture the activated layerwise expertIDs per token
             if not self.training and self.config.test_mode:
-                if not hasattr(self, "bid") or not hasattr(self, "rid") or not hasattr(self, "lid"):
+                if not hasattr(self, "cnts") or not hasattr(self, "rank"):
+                    self.cnts = 0
                     self.rank = torch.distributed.get_rank()
                     self.dump = Path(os.environ["EACT_SAVE"], str(self.layer_number))
                     self.dump.mkdir(parents=True, exist_ok=True)
-                torch.save(probs, Path(self.dump, f"probs-{self.rank}.pt"))
+                torch.save(probs, Path(self.dump, f"probs-{self.cnts}-{self.rank}.pt"))
+                self.cnts += 1
 
             (dispatched_input, tokens_per_expert) = self.token_dispatcher.token_permutation(
                 hidden_states, probs, routing_map
