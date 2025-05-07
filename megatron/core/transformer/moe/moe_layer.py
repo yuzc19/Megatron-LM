@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Union
 
 import os
-from collections import dict
 from pathlib import Path
 
 import torch
