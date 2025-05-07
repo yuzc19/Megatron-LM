@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Union
 
 import os
+from collections import dict
 from pathlib import Path
 
 import torch
@@ -136,14 +137,18 @@ class MoELayer(BaseMoELayer):
         def custom_forward(hidden_states):
             probs, routing_map = self.router(hidden_states)
 
-            # capture the activated layerwise expertIDs per token
+            # capture the activated layerwise expert id per token
             if not self.training and self.config.test_mode:
                 if not hasattr(self, "cnts") or not hasattr(self, "rank"):
                     self.cnts = 0
                     self.rank = torch.distributed.get_rank()
-                    self.dump = Path(os.environ["EACT_SAVE"], str(self.layer_number))
-                    self.dump.mkdir(parents=True, exist_ok=True)
-                torch.save(probs, Path(self.dump, f"probs-{self.cnts}-{self.rank}.pt"))
+                    self.eact_save = Path(os.environ["EACT_SAVE"], str(self.layer_number))
+                    self.eact_save.mkdir(parents=True, exist_ok=True)
+                data = torch.full((probs.shape[0], self.config.moe_router_topk), -1, dtype=torch.int)
+                for i, expert_id in probs.nonzero():
+                    j = (data[i] == -1).nonzero(as_tuple=True)[0][0]
+                    data[i, j] = expert_id
+                torch.save(probs, Path(self.eact_save, f"tops-{self.cnts}-{self.rank}.pt"))
                 self.cnts += 1
 
             (dispatched_input, tokens_per_expert) = self.token_dispatcher.token_permutation(
