@@ -349,10 +349,7 @@ class GPTDataset(MegatronDataset):
         else:
             cache_hit = False
 
-        if not path_to_cache or (
-            not cache_hit
-            and (not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0)
-        ):
+        if True:
 
             log_single_rank(
                 logger,
