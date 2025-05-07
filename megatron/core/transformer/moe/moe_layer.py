@@ -4,6 +4,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Union
 
+import os
+from pathlib import Path
+
 import torch
 
 from megatron.core import parallel_state, tensor_parallel
@@ -132,6 +135,15 @@ class MoELayer(BaseMoELayer):
         # process MoE
         def custom_forward(hidden_states):
             probs, routing_map = self.router(hidden_states)
+
+            # capture the activated layerwise expertIDs per token
+            if not self.training and self.config.test_mode:
+                if not hasattr(self, "bid") or not hasattr(self, "rid") or not hasattr(self, "lid"):
+                    self.rank = torch.distributed.get_rank()
+                    self.dump = Path(os.environ["EACT_SAVE"], str(self.layer_number))
+                    self.dump.mkdir(parents=True, exist_ok=True)
+                torch.save(probs, Path(self.dump, f"probs-{self.rank}.pt"))
+
             (dispatched_input, tokens_per_expert) = self.token_dispatcher.token_permutation(
                 hidden_states, probs, routing_map
             )
