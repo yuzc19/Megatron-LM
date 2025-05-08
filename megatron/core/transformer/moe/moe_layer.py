@@ -142,9 +142,7 @@ class MoELayer(BaseMoELayer):
                     self.cnts, self.rank = 0, torch.distributed.get_rank()
                     self.dump = Path(os.environ["EACT_SAVE"], str(self.layer_number))
                     self.dump.mkdir(parents=True, exist_ok=True)
-                _, expert_ids = probs.nonzero(as_tuple=True)
-                data = expert_ids.view(probs.shape[0], self.config.moe_router_topk)
-                torch.save(data, Path(self.dump, f"tops-{self.cnts}-{self.rank}.pt"))
+                torch.save(probs, Path(self.dump, f"probs-{self.cnts}-{self.rank}.pt"))
                 self.cnts += 1
 
             (dispatched_input, tokens_per_expert) = self.token_dispatcher.token_permutation(
