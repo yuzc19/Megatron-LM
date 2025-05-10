@@ -3,7 +3,9 @@
 from collections import OrderedDict
 from typing import Dict, Literal, Optional
 
+import os
 import torch
+from pathlib import Path
 from torch import Tensor
 
 from megatron.core import InferenceParams, tensor_parallel
@@ -204,6 +206,16 @@ class GPTModel(LanguageModule):
         extra_block_kwargs: dict = None,
         runtime_gather_output: Optional[bool] = None,
     ) -> Tensor:
+
+        # capture the token ids
+        if not self.training and self.config.test_mode:
+            if not hasattr(self, "cnts") or not hasattr(self, "rank"):
+                self.cnts, self.rank = 0, torch.distributed.get_rank()
+                self.dump = Path(os.environ["TIDS_SAVE"])
+                self.dump.mkdir(parents=True, exist_ok=True)
+            torch.save(input_ids.view(-1), Path(self.dump, f"{self.cnts}-{self.rank}.pt"))
+            self.cnts += 1
+
         """Forward function of the GPT Model This function passes the input tensors
         through the embedding layer, and then the decoeder and finally into the post
         processing layer (optional).

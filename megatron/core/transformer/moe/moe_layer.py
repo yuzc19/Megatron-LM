@@ -136,13 +136,13 @@ class MoELayer(BaseMoELayer):
         def custom_forward(hidden_states):
             probs, routing_map = self.router(hidden_states)
 
-            # capture the activated layerwise expert id per token
+            # capture the activated expert ids
             if not self.training and self.config.test_mode:
                 if not hasattr(self, "cnts") or not hasattr(self, "rank"):
                     self.cnts, self.rank = 0, torch.distributed.get_rank()
                     self.dump = Path(os.environ["EACT_SAVE"], str(self.layer_number))
                     self.dump.mkdir(parents=True, exist_ok=True)
-                torch.save(probs, Path(self.dump, f"probs-{self.cnts}-{self.rank}.pt"))
+                torch.save(probs, Path(self.dump, f"{self.cnts}-{self.rank}.pt"))
                 self.cnts += 1
 
             (dispatched_input, tokens_per_expert) = self.token_dispatcher.token_permutation(
