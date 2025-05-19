@@ -142,7 +142,7 @@ class MoELayer(BaseMoELayer):
                     self.cnts, self.rank = 0, torch.distributed.get_rank()
                     self.dump = Path(os.environ["EACT_SAVE"], str(self.layer_number))
                     self.dump.mkdir(parents=True, exist_ok=True)
-                values, indices = torch.topk(input, k=self.config.moe_router_topk)
+                values, indices = torch.topk(probs, k=self.config.moe_router_topk)
                 torch.save((values, indices), Path(self.dump, f"{self.cnts}-{self.rank}.pt"))
                 self.cnts += 1
 
